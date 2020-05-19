@@ -12,6 +12,7 @@ device = 'cpu'
 # 1) Generate Data
 np.random.seed(50)
 x = np.random.rand(100, 1)
+x = np.sort(x, axis=0)
 y = 1 + -4*x + np.random.rand(100, 1)  
 
 # convert numpy data into tensors
@@ -30,16 +31,18 @@ val_loader = DataLoader(dataset=val_dataset, batch_size=20)
 
 # 2) Create Model
 torch.manual_seed(50)
-model = nn.Sequential(nn.Linear(1, 1)).to(device)
+model = nn.Sequential(
+	nn.Linear(1, 1)).to(device)
 
 # set learning rate
 lr = 0.1
 
 # set num of epochs
-num_epochs = 3000
+num_epochs = 500
 
 # define loss function
 loss_fn = nn.MSELoss(reduction='mean')
+
 
 # define optimizer to update parameters
 optimizer = optim.SGD(model.parameters(), lr=lr)
@@ -110,5 +113,4 @@ plt.plot(t2, val_losses, color='green')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.show()
-
 

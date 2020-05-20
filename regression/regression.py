@@ -8,48 +8,47 @@ from torch.utils.data.dataset import random_split
 
 device = 'cpu'
 
+def package_data(x, y, batch_size):
+	'''
+	Takes in numpy arrays x, y of data along with a batch_size and splits
+	into 80/20 training data and validation data. 
 
-# 1) Generate Data
-np.random.seed(50)
-x = np.random.rand(100, 1)
-x = np.sort(x, axis=0)
-y = 1 + -4*x + np.random.rand(100, 1)  
+	Takes in parameters:
+		- x: NUMPY ARRAY; (n,1) numpy array with n x-values
+		- y: NUMPY ARRAY; (n,1) numpy array with n y-values
+		- batch_size: INTEGER; number of data points in mini-batch (1 for SGD)
+	
+	Returns:
+		- tuple (train_loader, val_loader) of pytorch DataLoader objects 
+	'''
+	# convert numpy data into tensors
+	x_tensor = torch.from_numpy(x).float().to(device)
+	y_tensor = torch.from_numpy(y).float().to(device)
 
-# convert numpy data into tensors
-x_tensor = torch.from_numpy(x).float().to(device)
-y_tensor = torch.from_numpy(y).float().to(device)
+	# create dataset
+	dataset = TensorDataset(x_tensor, y_tensor)
 
-# create dataset
-dataset = TensorDataset(x_tensor, y_tensor)
+	# split into training and validation data
+	train_dataset, val_dataset = random_split(dataset, [80, 20])
 
-# split into training and validation data
-train_dataset, val_dataset = random_split(dataset, [80, 20])
+	train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size)
+	val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size)
 
-train_loader = DataLoader(dataset=train_dataset, batch_size=16)
-val_loader = DataLoader(dataset=val_dataset, batch_size=20)
-
-
-# 2) Create Model
-torch.manual_seed(50)
-model = nn.Sequential(
-	nn.Linear(1, 1)).to(device)
-
-# set learning rate
-lr = 0.1
-
-# set num of epochs
-num_epochs = 500
-
-# define loss function
-loss_fn = nn.MSELoss(reduction='mean')
-
-
-# define optimizer to update parameters
-optimizer = optim.SGD(model.parameters(), lr=lr)
+	return train_loader, val_loader
 
 
 def generate_training_step(model, loss_fn, optimizer):
-	# returns a function that goes through one loop of training
+	'''
+	Used to generate a function that trains the model over a single epoch.
+
+	Takes in parameters:
+		- model: TORCH MODEL OBJ; model to undergo training
+		- loss_fcn: FUNC; loss function to use for training
+		- optimizer: TORCH OPTIM OBJ; optimizer to use for training
+	
+	Returns:
+		- function train_step() that goes through one loop of training
+	'''
 	def train_step(x, y):
 		# put model in training mode
 		model.train()
@@ -67,73 +66,23 @@ def generate_training_step(model, loss_fn, optimizer):
 	return train_step
 
 
-# 3) Train Model
-training_step = generate_training_step(model, loss_fn, optimizer)
-losses = []
-val_losses = []
-
-for epoch in range(num_epochs):
-	# train
-	for x_batch, y_batch in train_loader:
-		x_batch = x_batch.to(device)
-		y_batch = y_batch.to(device)
-
-		loss = training_step(x_batch, y_batch)
-		losses.append(loss)
-
-	# validation
-	with torch.no_grad():
-		for x_val, y_val in val_loader:
-			x_val = x_val.to(device)
-			y_val = y_val.to(device)
-
-			# put model in eval mode
-			model.eval()
-
-			# compute val loss
-			pred = model(x_val)
-			val_loss = loss_fn(y_val, pred)
-			val_losses.append(val_loss.item())
-
-
-# 4) Display Results
-#print(model.state_dict())
-
-# plot model
-#plt.scatter(x, y, color='blue')
-#p = model(x_tensor).detach().numpy()
-#plt.plot(x, p, color='red')
-#plt.show()
-#
-## plot loss
-#t1 = [i for i in range(len(losses))]
-#t2 = [i for i in range(len(val_losses))]
-#plt.plot(t1, losses, color='red')
-#plt.plot(t2, val_losses, color='green')
-#plt.xlabel('Epochs')
-#plt.ylabel('Loss')
-#plt.show()
-
-def package_data(x, y):
-	# convert numpy data into tensors
-	x_tensor = torch.from_numpy(x).float().to(device)
-	y_tensor = torch.from_numpy(y).float().to(device)
-
-	# create dataset
-	dataset = TensorDataset(x_tensor, y_tensor)
-
-	# split into training and validation data
-	train_dataset, val_dataset = random_split(dataset, [80, 20])
-
-	train_loader = DataLoader(dataset=train_dataset, batch_size=16)
-	val_loader = DataLoader(dataset=val_dataset, batch_size=20)
-
-	return train_loader, val_loader
-
-
 def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
+	'''
+	Creates a linear regression model and trains it to fit x,y data.
+
+	Takes in parameters:
+		- x: NUMPY ARRAY; (n,1) numpy array with n x-values
+		- y: NUMPY ARRAY; (n,1) numpy array with n y-values
+		- lr: FLOAT; learning rate for training
+		- num_epochs: INTEGER; number of epochs to train model
+		- batch_size: INTEGER; number of data points in mini-batch (1 for SGD)
+		- show: BOOLEAN; True to display plot of data with prediction, False otherwise
+	
+	Returns:
+		- trained model
+	'''
 	# put into dataloaders
-	train_loader, val_loader = package_data(x, y)
+	train_loader, val_loader = package_data(x, y, batch_size)
 
 	# nn model for linear regression
 	model = nn.Sequential(nn.Linear(1, 1)).to(device)
@@ -147,7 +96,7 @@ def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
 	training_step = generate_training_step(model, loss_fn, optimizer)
 	losses = []
 	val_losses = []
-	for epoch in range(num_epochs):
+	for _ in range(num_epochs):
 		# train
 		for x_batch, y_batch in train_loader:
 			x_batch = x_batch.to(device)
@@ -172,26 +121,22 @@ def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
 
 	# handle display options
 	if show:
+		tht = model.state_dict()['0.weight'][0].item()
+		tht0 = model.state_dict()['0.bias'].item()
+		# plot data
+		plt.scatter(x, y, color='blue')
 		# plot model
-		#plt.scatter(x, y, color='blue')
-		#p = model(x_tensor).detach().numpy()
-		#plt.plot(x, p, color='red')
-		#plt.show()
-
-		# plot loss
-		t1 = [i for i in range(len(losses))]
-		t2 = [i for i in range(len(val_losses))]
-		plt.plot(t1, losses, color='red')
-		plt.plot(t2, val_losses, color='green')
-		plt.xlabel('Epochs')
-		plt.ylabel('Loss')
+		x_tensor = torch.from_numpy(x).float()
+		p = model(x_tensor).detach().numpy()
+		plt.plot(x, p, color='red')
+		# set title
+		plt.title('weight={}\nbias={}'.format(round(tht, 3), round(tht0, 3)))
 		plt.show()
 
 	return model
 	
 	
 if __name__ == '__main__':
-	x = np.array([[i for i in range(100)]]).T
-	y = 2 + 4*x
-	model = fit_linear_regression(x, y, 0.01, 100, 10, show=True)
-	
+	xdata = np.linspace(0, 1, 100).reshape(100, 1)
+	ydata = -2 + 4*xdata + np.random.rand(100, 1) 
+	model = fit_linear_regression(x=xdata, y=ydata, lr=1e-1, num_epochs=500, batch_size=1, show=True)

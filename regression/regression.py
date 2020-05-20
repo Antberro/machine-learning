@@ -85,7 +85,13 @@ def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
 	train_loader, val_loader = package_data(x, y, batch_size)
 
 	# nn model for linear regression
-	model = nn.Sequential(nn.Linear(1, 1)).to(device)
+	model = nn.Sequential(
+		nn.Linear(1, 50),
+		nn.ReLU(),
+		nn.Linear(50, 50),
+		nn.ReLU(),
+		nn.Linear(50, 1)
+		).to(device)
 
 	# loss function for linear regression
 	loss_fn = nn.MSELoss(reduction='mean')
@@ -121,22 +127,18 @@ def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
 
 	# handle display options
 	if show:
-		tht = model.state_dict()['0.weight'][0].item()
-		tht0 = model.state_dict()['0.bias'].item()
 		# plot data
 		plt.scatter(x, y, color='blue')
 		# plot model
 		x_tensor = torch.from_numpy(x).float()
 		p = model(x_tensor).detach().numpy()
 		plt.plot(x, p, color='red')
-		# set title
-		plt.title('weight={}\nbias={}'.format(round(tht, 3), round(tht0, 3)))
 		plt.show()
 
 	return model
 	
 	
 if __name__ == '__main__':
-	xdata = np.linspace(0, 1, 100).reshape(100, 1)
-	ydata = -2 + 4*xdata + np.random.rand(100, 1) 
-	model = fit_linear_regression(x=xdata, y=ydata, lr=1e-1, num_epochs=500, batch_size=1, show=True)
+	xdata = np.linspace(0, 10, 100).reshape(100, 1)
+	ydata = -2 + 3*np.sin(xdata) + np.random.rand(100, 1) 
+	model = fit_linear_regression(x=xdata, y=ydata, lr=1e-3, num_epochs=1000, batch_size=1, show=True)

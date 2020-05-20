@@ -67,7 +67,7 @@ def generate_training_step(model, loss_fn, optimizer):
 	return train_step
 
 
-# 3) Train Mode
+# 3) Train Model
 training_step = generate_training_step(model, loss_fn, optimizer)
 losses = []
 val_losses = []
@@ -97,20 +97,101 @@ for epoch in range(num_epochs):
 
 
 # 4) Display Results
-print(model.state_dict())
+#print(model.state_dict())
 
 # plot model
-plt.scatter(x, y, color='blue')
-p = model(x_tensor).detach().numpy()
-plt.plot(x, p, color='red')
-plt.show()
+#plt.scatter(x, y, color='blue')
+#p = model(x_tensor).detach().numpy()
+#plt.plot(x, p, color='red')
+#plt.show()
+#
+## plot loss
+#t1 = [i for i in range(len(losses))]
+#t2 = [i for i in range(len(val_losses))]
+#plt.plot(t1, losses, color='red')
+#plt.plot(t2, val_losses, color='green')
+#plt.xlabel('Epochs')
+#plt.ylabel('Loss')
+#plt.show()
 
-# plot loss
-t1 = [i for i in range(len(losses))]
-t2 = [i for i in range(len(val_losses))]
-plt.plot(t1, losses, color='red')
-plt.plot(t2, val_losses, color='green')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.show()
+def package_data(x, y):
+	# convert numpy data into tensors
+	x_tensor = torch.from_numpy(x).float().to(device)
+	y_tensor = torch.from_numpy(y).float().to(device)
 
+	# create dataset
+	dataset = TensorDataset(x_tensor, y_tensor)
+
+	# split into training and validation data
+	train_dataset, val_dataset = random_split(dataset, [80, 20])
+
+	train_loader = DataLoader(dataset=train_dataset, batch_size=16)
+	val_loader = DataLoader(dataset=val_dataset, batch_size=20)
+
+	return train_loader, val_loader
+
+
+def fit_linear_regression(x, y, lr, num_epochs, batch_size, show=False):
+	# put into dataloaders
+	train_loader, val_loader = package_data(x, y)
+
+	# nn model for linear regression
+	model = nn.Sequential(nn.Linear(1, 1)).to(device)
+
+	# loss function for linear regression
+	loss_fn = nn.MSELoss(reduction='mean')
+
+	# define optimizer to update parameters
+	optimizer = optim.SGD(model.parameters(), lr=lr)
+
+	training_step = generate_training_step(model, loss_fn, optimizer)
+	losses = []
+	val_losses = []
+	for epoch in range(num_epochs):
+		# train
+		for x_batch, y_batch in train_loader:
+			x_batch = x_batch.to(device)
+			y_batch = y_batch.to(device)
+
+			loss = training_step(x_batch, y_batch)
+			losses.append(loss)
+
+		# validation
+		with torch.no_grad():
+			for x_val, y_val in val_loader:
+				x_val = x_val.to(device)
+				y_val = y_val.to(device)
+
+				# put model in eval mode
+				model.eval()
+
+				# compute val loss
+				pred = model(x_val)
+				val_loss = loss_fn(y_val, pred)
+				val_losses.append(val_loss.item())
+
+	# handle display options
+	if show:
+		# plot model
+		#plt.scatter(x, y, color='blue')
+		#p = model(x_tensor).detach().numpy()
+		#plt.plot(x, p, color='red')
+		#plt.show()
+
+		# plot loss
+		t1 = [i for i in range(len(losses))]
+		t2 = [i for i in range(len(val_losses))]
+		plt.plot(t1, losses, color='red')
+		plt.plot(t2, val_losses, color='green')
+		plt.xlabel('Epochs')
+		plt.ylabel('Loss')
+		plt.show()
+
+	return model
+	
+	
+if __name__ == '__main__':
+	x = np.array([[i for i in range(100)]]).T
+	y = 2 + 4*x
+	model = fit_linear_regression(x, y, 0.01, 100, 10, show=True)
+	

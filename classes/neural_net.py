@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import random_split
 import numpy as np 
 import matplotlib.pyplot as plt
-#import visualize as viz
+import plotting.visualize as viz
 from pathlib import Path
 
 class NeuralNet:
@@ -165,7 +165,6 @@ class NeuralNet:
 		print('Testing Loss: ', round(test_loss, 3))
 
 		if plot:
-			import visualize as viz
 			fig, ax = viz.initialize_figax(title='Model Predicting Testing Data')
 			ax.scatter(xtest, ytest, color=viz.GREEN)
 			ax.plot(xtest, pred.detach().numpy(), color=viz.RED)
@@ -186,7 +185,6 @@ class NeuralNet:
 		'''
 		Plots data along with model's predictions.
 		'''
-		import visualize as viz
 		# create fig and axis
 		fig, ax = viz.initialize_figax(title='Model Fitting Training Data')
 		# plot data
@@ -203,7 +201,6 @@ class NeuralNet:
 		'''
 		Plot training loss and validation loss side by side.
 		'''
-		import visualize as viz
 		# create fig and axes
 		fig, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
 		ax1 = viz.initialize_figax(ax=ax1, title='Training Loss', xlabel='Epochs')
@@ -215,42 +212,3 @@ class NeuralNet:
 		ax2.plot(e2, self.val_losses, color=viz.GREEN)
 		# display
 		plt.show()
-
-if __name__ == "__main__":
-	# example data sets
-	xdata = np.linspace(0, 10, 100).reshape(100, 1)
-	ydata = -4 + 3*np.cos(xdata) + np.random.rand(100, 1)
-
-	xtest = np.linspace(5, 10, 100).reshape(100, 1)
-	ytest = -4 + 3*np.cos(xtest) + np.random.rand(100, 1)
-
-	# example models
-	simple = nn.Sequential(nn.Linear(1,1))
-	harder = nn.Sequential(
-		nn.Linear(1, 50),
-		nn.ReLU(),
-		nn.Linear(50, 50),
-		nn.ReLU(),
-		nn.Linear(50, 1))
-		
-	# EXAMPLE USAGE; creating model, training, testing
-	#net = NeuralNet(harder)
-	#net.set_hyper_params(lr=1e-3, batch_size=1, epochs=500)
-	#net.set_data(xdata, ydata)
-	#net.set_loss_fn(nn.MSELoss(reduction='mean'))
-	#net.set_optimizer(optim.SGD)
-	#net.learn()
-	#net.plot_model()
-	#net.plot_loss()
-	#net.predict(xtest, ytest, plot=True)
-
-	# saving model
-	#path = Path('C:/Users/aberr/Documents/Projects/machine-learning/saved_models/reg_model_1.pt')
-	#net.save_model(path)
-	#print('saved')
-
-	# loading saved model and test
-	#nnet = NeuralNet(harder)
-	#nnet.set_loss_fn(nn.MSELoss(reduction='mean'))
-	#nnet.load_model(path)
-	#nnet.predict(xtest, ytest, plot=True)

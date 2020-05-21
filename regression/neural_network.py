@@ -4,6 +4,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import random_split
 import numpy as np 
+import matplotlib.pyplot as plt
+import visualize as viz
 
 class NeuralNet:
 	def __init__(self, model):
@@ -135,32 +137,96 @@ class NeuralNet:
 					pred = self.model(x_val)
 					val_loss = self.loss_fn(y_val, pred)
 					self.val_losses.append(val_loss.item())
+		# print summary
+		print('\n--- Results after training for {} epochs ---'.format(self.num_epochs))
+		print('Final Training Loss: ', self.train_losses[-1])
+		print('Final Validation Loss: ', self.val_losses[-1])
 
 	def save_model(self):
 		'''save model'''
 		pass
 
-	def predict(self, test_data):
-		'''use model to predict new data'''
-		pass
+	def predict(self, xtest, ytest, plot=False):
+		'''
+		Use model to predict using new test data.
+
+		Takes in parameters:
+			- xtest: Numpy Array; array of x values with shape (n,d) with n data points with d features
+			- ytest: Numpy Array; array of y values with shape (n,d) with n data points with d features
+			- plot: Boolean; set to True to plot testing data with model's predictions (default False)
+		'''
+		# convert data to tensors
+		xtest_tensor = torch.from_numpy(xtest).float().to(self.device)
+		ytest_tensor = torch.from_numpy(ytest).float().to(self.device)
+		# compute prediction
+		pred = self.model(xtest_tensor)
+		# compute testing loss
+		test_loss = self.loss_fn(pred, ytest_tensor).item()
+		# print summary
+		print('\n--- Results after Testing ---')
+		print('Testing Loss: ', round(test_loss, 3))
+
+		if plot:
+			fig, ax = viz.initialize_figax(title='Model Predicting Testing Data')
+			ax.scatter(xtest, ytest, color=viz.GREEN)
+			ax.plot(xtest, pred.detach().numpy(), color=viz.RED)
+			plt.show()
+
 
 	def plot_model(self):
-		'''plot data along with model's predictions'''
-		pass
+		'''
+		Plots data along with model's predictions.
+		'''
+		# create fig and axis
+		fig, ax = viz.initialize_figax(title='Model Fitting Training Data')
+		# plot data
+		ax.scatter(self.raw_x, self.raw_y, color=viz.BLUE)
+		# plot model
+		pred = self.model(self.x_tensor).detach().numpy()
+		ax.plot(self.raw_x, pred, color = viz.RED)
+		# display
+		plt.show()
 
+# TODO: make sure to fix issue with training loss and val loss having differing lengths when plotting
 	def plot_loss(self):
-		'''plot loss'''
-		pass
+		'''
+		Plot training loss and validation loss side by side.
+		'''
+		# create fig and axes
+		fig, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
+		ax1 = viz.initialize_figax(ax=ax1, title='Training Loss', xlabel='Epochs')
+		ax2 = viz.initialize_figax(ax=ax2, title='Validation Loss', xlabel='Epochs')
+		# plot loss
+		e1 = [i for i in range(len(self.train_losses))]
+		e2 = [i for i in range(len(self.val_losses))]
+		ax1.plot(e1, self.train_losses, color=viz.RED)
+		ax2.plot(e2, self.val_losses, color=viz.GREEN)
+		# display
+		plt.show()
 
 if __name__ == "__main__":
 
 	xdata = np.linspace(0, 10, 100).reshape(100, 1)
-	ydata = -2 + 3*np.sin(xdata) + np.random.rand(100, 1)
+	ydata = -4 + 3*np.cos(xdata) + np.random.rand(100, 1)
 
-	net = NeuralNet(nn.Sequential(nn.Linear(1, 1)))
-	net.set_hyper_params(lr=1e-2, batch_size=1, epochs=1000)
+	xtest = np.linspace(5, 10, 100).reshape(100, 1)
+	ytest = -4 + 3*np.cos(xtest) + np.random.rand(100, 1)
+
+	simple = nn.Sequential(nn.Linear(1,1))
+	harder = nn.Sequential(
+		nn.Linear(1, 50),
+		nn.ReLU(),
+		nn.Linear(50, 50),
+		nn.ReLU(),
+		nn.Linear(50, 1))
+		
+	net = NeuralNet(harder)
+	net.set_hyper_params(lr=1e-3, batch_size=1, epochs=500)
 	net.set_data(xdata, ydata)
 	net.set_loss_fn(nn.MSELoss(reduction='mean'))
 	net.set_optimizer(optim.SGD)
-
+	net.learn()
+	net.plot_model()
+	net.plot_loss()
+	net.predict(xtest, ytest, plot=True)
 	
